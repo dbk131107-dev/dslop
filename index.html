@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Xuất Danh Sách Sinh Viên</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Thư viện SheetJS để xuất Excel -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    </style>
+</head>
+<body class="bg-gray-100 p-4 md:p-8">
+
+    <div class="max-w-4xl mx-auto bg-white shadow-lg rounded-lg overflow-hidden">
+        <div class="p-6 border-b border-gray-200 flex flex-col md:flex-row justify-between items-center gap-4">
+            <div>
+                <h1 class="text-2xl font-bold text-gray-800">Danh Sách Sinh Viên</h1>
+                <p class="text-gray-500 text-sm mt-1">Tổng số: <span id="student-count">0</span> sinh viên</p>
+            </div>
+            <button onclick="exportToExcel()" class="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded transition duration-200 shadow-md">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+                Tải xuống file Excel
+            </button>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-gray-50 text-gray-700 text-sm uppercase tracking-wider border-b">
+                        <th class="p-4 font-semibold">STT</th>
+                        <th class="p-4 font-semibold">Mã SV</th>
+                        <th class="p-4 font-semibold">Họ đệm</th>
+                        <th class="p-4 font-semibold">Tên</th>
+                    </tr>
+                </thead>
+                <tbody id="table-body" class="text-gray-700 text-sm">
+                    <!-- Dữ liệu sẽ được chèn vào đây bằng JS -->
+                </tbody>
+            </table>
+        </div>
+        
+        <div class="p-4 bg-gray-50 text-center text-xs text-gray-400">
+            Dữ liệu đã được định dạng chuẩn bảng tính
+        </div>
+    </div>
+
+    <script>
+        // Dữ liệu gốc
+        const students = [
+            { stt: 1, msv: "BEC250001", hodem: "TRIỆU NGUYỄN MINH", ten: "AN" },
+            { stt: 2, msv: "BEC250004", hodem: "NGÔ ĐỨC", ten: "ANH" },
+            { stt: 3, msv: "BEC252010", hodem: "NGUYỄN DUY", ten: "ANH" },
+            { stt: 4, msv: "BEC250003", hodem: "PHẠM VĂN TUẤN", ten: "ANH" },
+            { stt: 5, msv: "BEC250008", hodem: "NGUYỄN VĂN", ten: "CƯỜNG" },
+            { stt: 6, msv: "BEC250015", hodem: "BÙI VĂN", ten: "DŨNG" },
+            { stt: 7, msv: "BEC250014", hodem: "HOÀNG ANH", ten: "DŨNG" },
+            { stt: 8, msv: "BEC250016", hodem: "NGUYỄN TIẾN", ten: "DŨNG" },
+            { stt: 9, msv: "BEC250013", hodem: "TRẦN VĂN", ten: "DŨNG" },
+            { stt: 10, msv: "BEC250017", hodem: "BÙI CÔNG", ten: "DUY" },
+            { stt: 11, msv: "BEC252058", hodem: "VŨ TIẾN", ten: "ĐẠT" },
+            { stt: 12, msv: "BEC250012", hodem: "NGUYỄN MINH", ten: "ĐỨC" },
+            { stt: 13, msv: "BEC250020", hodem: "LÊ TRỌNG", ten: "HIẾU" },
+            { stt: 14, msv: "BEC250021", hodem: "PHẠM TRUNG", ten: "HIẾU" },
+            { stt: 15, msv: "BEC250022", hodem: "NGÔ HUY", ten: "HIỆU" },
+            { stt: 16, msv: "BEC250024", hodem: "ĐỖ QUANG", ten: "HUY" },
+            { stt: 17, msv: "BEC250027", hodem: "THIỆU HOÀNG", ten: "HUY" },
+            { stt: 18, msv: "BEC250028", hodem: "ĐỖ BẢO", ten: "KHANG" },
+            { stt: 19, msv: "BEC250030", hodem: "NGÔ THẾ", ten: "KIÊN" },
+            { stt: 20, msv: "BEC250032", hodem: "PHẠM TẤN", ten: "KIỆT" },
+            { stt: 21, msv: "BEC252401", hodem: "NGUYỄN TRỌNG", ten: "LÂM" },
+            { stt: 22, msv: "BEC250035", hodem: "TRẦN NGỌC", ten: "LINH" },
+            { stt: 23, msv: "BEC250036", hodem: "NGUYỄN THÀNH", ten: "LONG" },
+            { stt: 24, msv: "BEC250037", hodem: "PHẠM ĐỨC", ten: "LONG" },
+            { stt: 25, msv: "BEC252402", hodem: "NGUYỄN TUẤN", ten: "MẠNH" },
+            { stt: 26, msv: "BEC250039", hodem: "NGUYỄN ĐĂNG QUANG", ten: "MINH" },
+            { stt: 27, msv: "BEC250038", hodem: "NGUYỄN SỸ", ten: "MINH" },
+            { stt: 28, msv: "BEC250040", hodem: "TRẦN CÔNG", ten: "MINH" },
+            { stt: 29, msv: "BEC250042", hodem: "ĐỒNG TUẤN", ten: "NAM" },
+            { stt: 30, msv: "BEC250043", hodem: "NGUYỄN TRỌNG", ten: "NGHĨA" },
+            { stt: 31, msv: "BEC250044", hodem: "VŨ TIẾN", ten: "NGUYỆN" },
+            { stt: 32, msv: "BEC250045", hodem: "NGUYỄN VIẾT", ten: "NHÂN" },
+            { stt: 33, msv: "BEC250047", hodem: "KIM HỒNG", ten: "NHẬT" },
+            { stt: 34, msv: "BEC250046", hodem: "LÊ HOÀNG LONG", ten: "NHẬT" },
+            { stt: 35, msv: "BEC250051", hodem: "LƯƠNG ĐỨC", ten: "TÂN" },
+            { stt: 36, msv: "BEC252400", hodem: "PHẠM NHẬT", ten: "TÂN" },
+            { stt: 37, msv: "BEC252403", hodem: "NGUYỄN LÊ", ten: "THANH" },
+            { stt: 38, msv: "BEC250055", hodem: "NGUYỄN TIẾN", ten: "THÀNH" },
+            { stt: 39, msv: "BEC250056", hodem: "TRẦN ĐỒNG", ten: "TOÀN" },
+            { stt: 40, msv: "BEC250057", hodem: "NGUYỄN ANH", ten: "TUẤN" },
+            { stt: 41, msv: "BEC252393", hodem: "NGUYỄN ĐỨC", ten: "VINH" }
+        ];
+
+        // Hiển thị dữ liệu lên bảng HTML
+        const tbody = document.getElementById('table-body');
+        document.getElementById('student-count').textContent = students.length;
+
+        students.forEach(sv => {
+            const tr = document.createElement('tr');
+            tr.className = "border-b hover:bg-gray-50 transition-colors";
+            tr.innerHTML = `
+                <td class="p-4 text-gray-900 font-medium">${sv.stt}</td>
+                <td class="p-4 text-blue-600 font-mono">${sv.msv}</td>
+                <td class="p-4">${sv.hodem}</td>
+                <td class="p-4 font-semibold">${sv.ten}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+
+        // Hàm xuất Excel
+        function exportToExcel() {
+            // Chuyển đổi dữ liệu JSON sang định dạng mà SheetJS hiểu
+            // Đổi tên cột cho đẹp trong file Excel
+            const dataForExcel = students.map(sv => ({
+                "STT": sv.stt,
+                "Mã Sinh Viên": sv.msv,
+                "Họ Đệm": sv.hodem,
+                "Tên": sv.ten
+            }));
+
+            // Tạo Worksheet
+            const ws = XLSX.utils.json_to_sheet(dataForExcel);
+
+            // Điều chỉnh độ rộng cột tự động (ước lượng)
+            const wscols = [
+                {wch: 5},  // STT
+                {wch: 15}, // MSV
+                {wch: 25}, // Họ đệm
+                {wch: 15}  // Tên
+            ];
+            ws['!cols'] = wscols;
+
+            // Tạo Workbook và thêm Worksheet vào
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "DanhSachSinhVien");
+
+            // Xuất file
+            XLSX.writeFile(wb, "Danh_Sach_Sinh_Vien.xlsx");
+        }
+    </script>
+</body>
+</html>
+
+
